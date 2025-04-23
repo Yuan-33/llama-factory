@@ -2,6 +2,33 @@
   "identity": {
     "file_name": "identity.json"
   },
+  
+    "myalpaca": {
+      "file_name": "myalpaca/train_alpaca_cleaned.json",
+      "columns": {
+        "input": "instruction",
+        "output": "output"
+      }
+    },
+    "train_alpaca_cleaned": {
+    "file_name": "myalpaca/train_alpaca_cleaned.json",
+    "columns": {
+        "prompt": "instruction",
+        "query": "input",
+        "response": "output"
+    }
+    },
+
+    "myalpaca2": {
+      "file_name": "myalpaca2/train.json",
+      "eval_file_name": "myalpaca2/test.json",
+      "columns": {
+          "prompt": "instruction",
+          "query": "input",
+          "response": "output"
+      }
+  },
+   
   "alpaca_en_demo": {
     "file_name": "alpaca_en_demo.json"
   },
