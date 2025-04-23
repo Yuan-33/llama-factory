@@ -1,6 +1,6 @@
 #!/bin/bash
 
-export HF_TOKEN=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
+#export HF_TOKEN=h1***
 
 CUDA_VISIBLE_DEVICES=0 python3 src/train.py \
   --stage sft \
