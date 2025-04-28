@@ -35,6 +35,8 @@ CUDA_VISIBLE_DEVICES=0 python3 src/train.py \
   --cutoff_len 512 \
   --include_tokens_per_second true \
   --plot_loss \
-  --metric_for_best_model loss 
+  --metric_for_best_model loss \
+  --lora_rank 8 \
+  --lora_target "q_proj,v_proj" 
 
 
