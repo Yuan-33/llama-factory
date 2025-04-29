@@ -2,6 +2,11 @@
 
 #export HF_TOKEN=h1***
 
+set -e  # Exit immediately on error
+
+: "${HF_TOKEN:?Error: Please set HF_TOKEN environment variable}"
+export HF_TOKEN
+
 CUDA_VISIBLE_DEVICES=0 python3 src/train.py \
   --stage sft \
   --model_name_or_path meta-llama/Meta-Llama-3-8B \

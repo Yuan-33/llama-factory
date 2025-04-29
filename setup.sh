@@ -1,6 +1,10 @@
 #!/bin/bash
 set -e  # Exit immediately if a command exits with a non-zero status
 
+# Ensure W&B API key is provided
+: "${WANDB_API_KEY:?Error: Please set WANDB_API_KEY environment variable}"
+export WANDB_API_KEY
+
 # Step 1: Install Docker and NVIDIA container toolkit
 echo "[Step 1] Installing Docker and NVIDIA container toolkit..."
 curl -sSL https://get.docker.com/ | sudo sh
@@ -100,6 +104,9 @@ RUN pip install --upgrade pip
 
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
+# expose W&B token in container env
+ENV WANDB_API_KEY=${WANDB_API_KEY}
+
 RUN pip install \
     transformers \
     datasets \
@@ -155,7 +162,13 @@ EOT
 
 chmod +x ~/llama-factory/fix_dependencies.sh
 
-docker run --gpus all -it --name llama-train -v ~/llama-factory:/llama-factory llama-env:py310 bash
+
+docker run --gpus all -it --name llama-train \
+    -e WANDB_API_KEY \
+    -v ~/llama-factory:/llama-factory \
+    llama-env:py310 \
+    bash -c "echo \"$WANDB_API_KEY\" | wandb login --relogin && \
+              cd /llama-factory && git lfs install && git pull origin main && git lfs pull && bash"
 
 # Manual step: After entering container, run
 # cd /llama-factory
