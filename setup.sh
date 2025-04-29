@@ -126,6 +126,13 @@ if [ ! -d "$HOME/llama-factory" ]; then
   git clone https://github.com/Yuan-33/llama-factory.git ~/llama-factory
 fi
 
+cd ~/llama-factory
+# Initialize Git LFS and fetch large checkpoint files
+command -v git-lfs >/dev/null 2>&1 || git lfs install
+git lfs install
+git pull origin main
+git lfs pull
+
 # Step 5: Build the Docker image
 echo "[Step 5] Building the Docker image..."
 
