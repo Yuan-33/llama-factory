@@ -1,31 +1,27 @@
-import openai
+from vllm import LLM, SamplingParams
 
-# 设置本地 vLLM 推理服务
-openai.api_key = "EMPTY"
-openai.api_base = "http://localhost:8000/v1"
+# Initialize the LLM with the path to the merged model
+llm = LLM(model="/llama-factory/merged_model")
 
-# 一组指令 prompt（Alpaca 格式）
-instructions = [
-    "Explain in depth why gold prices have risen recently. List at least three contributing factors.",
-    "Describe how the Transformer attention mechanism works. Include equations or visual analogies.",
-    "Summarize the core differences between supervised and reinforcement learning.",
-    "Explain how LoRA reduces GPU memory usage during LLM fine-tuning.",
-    "Describe how gradient accumulation helps fit large batches on small GPUs."
-]
-
-# 推理参数
-GEN_ARGS = dict(
-    model="/train/llama-factory/output/merged_model",  # 修改为你的模型路径（本地 vLLM 加载名）
-    max_tokens=512,
-    temperature=0.5,
-    top_p=0.95,
-    stop=["###", "</s>"]
+# Define the sampling parameters for generation
+sampling_params = SamplingParams(
+    temperature=0.6,
+    max_tokens=64
 )
 
-# 批量推理主逻辑
-for idx, instruction in enumerate(instructions, 1):
-    prompt = f"### Instruction:\n{instruction}\n\n### Response:"
-    response = openai.Completion.create(prompt=prompt, **GEN_ARGS)
-    output = response["choices"][0]["text"].strip()
+# A batch of prompts to generate responses for
+prompts = [
+    "What is LoRA?",
+    "Explain gradient accumulation.",
+    "What is rotary position encoding?",
+    "Compare bf16 and fp16."
+]
 
-    print(f"\n=== [Prompt {idx}] ===\n{instruction}\n---\n{output}\n")
+# Run batch inference using vLLM
+outputs = llm.generate(prompts, sampling_params)
+
+# Print each prompt with its generated output
+for prompt, output in zip(prompts, outputs):
+    print(f"Prompt: {prompt}")
+    print("Output:", output.outputs[0].text.strip())
+    print("-" * 50)

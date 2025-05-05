@@ -1,29 +1,32 @@
-import openai
+from transformers import AutoTokenizer, AutoModelForCausalLM
+import torch
 
-# Connect to local vLLM OpenAI-compatible server
-openai.api_key = "EMPTY"
-openai.api_base = "http://localhost:8000/v1"
-
-# Define the instruction prompt (Alpaca style)
-instruction = (
-    "Explain in depth why gold prices have risen recently. "
-    "List at least three contributing factors, such as geopolitical risks or inflation, "
-    "and elaborate on each point with specific context if possible."
+model_id = "/llama-factory/merged_model"
+tokenizer = AutoTokenizer.from_pretrained(model_id)
+model = AutoModelForCausalLM.from_pretrained(
+    model_id,
+    torch_dtype=torch.bfloat16,
+    device_map="auto"
 )
 
-# Build the full Alpaca-style prompt
-prompt = f"### Instruction:\n{instruction}\n\n### Response:"
+# Prepare the input prompt
+inputs = tokenizer(
+    "Introduce llama3 features", 
+    return_tensors="pt"
+).to(model.device)
 
-# Run inference
-response = openai.Completion.create(
-    model="/train/llama-factory/output/merged_model",  # Use your actual model name
-    prompt=prompt,
-    max_tokens=512,        # Allows longer, more detailed responses
-    temperature=0.5,       # Lower temperature for more factual coherence
-    top_p=0.95,
-    stop=["###", "</s>"]   # Prevents over-generation or repetition
+# Perform Contrastive Search generation
+outputs = model.generate(
+    **inputs,
+    max_new_tokens=512,             # Maximum number of new tokens to generate
+    do_sample=False,               # Disable sampling for deterministic output
+    penalty_alpha=0.6,             # Contrastive penalty strength
+    top_k=4,                       # Number of candidates to consider per step
+    repetition_penalty=1.15,       # Penalize repeating tokens
+    no_repeat_ngram_size=3,        # Prevent repeating n-grams of size 3
+    early_stopping=True,           # Stop when all beams hit EOS
+    pad_token_id=tokenizer.eos_token_id  # Explicitly set padding token
 )
 
-# Print result
-print("\n=== Model Output ===\n")
-print(response["choices"][0]["text"].strip())
+# Decode and print the generated text
+print(tokenizer.decode(outputs[0], skip_special_tokens=True))

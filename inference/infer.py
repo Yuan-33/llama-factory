@@ -1,28 +1,24 @@
-from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import PeftModel, PeftConfig
+from vllm import LLM, SamplingParams
 
-# 路径设置
-base_model_path = "meta-llama/Meta-Llama-3-8B"  # 同训练时一致
-lora_model_path = "/train/llama-factory/output"  # 注意是容器内路径
+llm = LLM(model="./merged_model")
 
-# 加载 tokenizer 和基础模型
-tokenizer = AutoTokenizer.from_pretrained(base_model_path)
-base_model = AutoModelForCausalLM.from_pretrained(
-    base_model_path,
-    device_map="auto",
-    torch_dtype="auto"
-)
+samples = [
+    {
+        "instruction": "What does the code get  ?",
+        "input": "def get_volume_type_qos_specs volume_type_id ctxt context get_admin_context res db volume_type_qos_specs_get ctxt volume_type_id return res"
+    },
+    {
+        "instruction": "How do a kext unload ?",
+        "input": "def UninstallDriver bundle_name km objc KextManager cf_bundle_name km PyStringToCFString bundle_name status km iokit KextManagerUnloadKextWithIdentifier cf_bundle_name km dll CFRelease cf_bundle_name return status"
+    }
+]
 
-# 加载 LoRA adapter
-model = PeftModel.from_pretrained(base_model, lora_model_path)
+def format_prompt(sample):
+    return f"Instruction: {sample['instruction']}\nInput: {sample['input']}\nOutput:"
 
-# 推理输入
-prompt = "Explain the change of gold price."
-inputs = tokenizer(prompt, return_tensors="pt").to(model.device)
+prompts = [format_prompt(s) for s in samples]
+params = SamplingParams(max_tokens=64, temperature=0.6)
 
-# 生成回答
-outputs = model.generate(**inputs, max_new_tokens=512)
-response = tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-print("\n=== 推理结果 ===\n")
-print(response)
+outputs = llm.generate(prompts, params)
+for prompt, output in zip(prompts, outputs):
+    print(f"{prompt}\n{output.outputs[0].text.strip()}\n{'-'*50}")

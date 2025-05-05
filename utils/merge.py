@@ -3,7 +3,7 @@ from peft import PeftModel
 import torch
 
 base_model_path = "meta-llama/Meta-Llama-3-8B"
-lora_model_path = "/train/llama-factory/checkpoints/checkpoint-1335"
+lora_model_path = "/llama-factory/checkpoints/checkpoint-1335"
 output_path = "./merged_model"
 
 # 加载 config
