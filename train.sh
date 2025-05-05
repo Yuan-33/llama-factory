@@ -4,6 +4,8 @@
 
 set -e  # Exit immediately on error
 
+bash "$(dirname "$0")/fix_dependencies.sh"
+
 : "${HF_TOKEN:?Error: Please set HF_TOKEN environment variable}"
 export HF_TOKEN
 

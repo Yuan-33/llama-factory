@@ -12,8 +12,7 @@ sudo groupadd -f docker
 sudo usermod -aG docker $USER
 
 # Reload group without reboot
-echo "[Info] Docker installed. If you want to use Docker without sudo, you must re-login or run 'newgrp docker'."
-sleep 2
+newgrp docker <<EONG
 
 # Check Docker version
 docker --version
@@ -28,7 +27,10 @@ if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
 fi
 
 # Force distribution to ubuntu22.04 (safe default)
-distribution="ubuntu22.04"
+distribution=$(. /etc/os-release; echo ${ID}${VERSION_ID})
+
+# 加上 x86_64
+distribution="${distribution}/x86_64"
 
 # Add NVIDIA repository correctly
 sudo mkdir -p /usr/share/keyrings
@@ -129,14 +131,15 @@ EOF
 # Step 4: Clone llama-factory if not exist
 echo "[Step 4] Cloning llama-factory from GitHub (if needed)..."
 
+sudo apt update && sudo apt install git-lfs -y
+git lfs install
+
 if [ ! -d "$HOME/llama-factory" ]; then
   git clone https://github.com/Yuan-33/llama-factory.git ~/llama-factory
 fi
 
 cd ~/llama-factory
 # Initialize Git LFS and fetch large checkpoint files
-command -v git-lfs >/dev/null 2>&1 || git lfs install
-git lfs install
 git pull origin main
 git lfs pull
 
@@ -162,13 +165,16 @@ EOT
 
 chmod +x ~/llama-factory/fix_dependencies.sh
 
+docker rm -f llama-train || true
 
-docker run --gpus all -it --name llama-train \
-    -e WANDB_API_KEY \
+docker run --gpus all -d --name llama-train \
+    -e WANDB_API_KEY=$WANDB_API_KEY \
     -v ~/llama-factory:/llama-factory \
     llama-env:py310 \
-    bash -c "echo \"$WANDB_API_KEY\" | wandb login --relogin && \
-              cd /llama-factory && git lfs install && git pull origin main && git lfs pull && bash"
+    bash
+
+# Step 7: 进容器
+docker exec -i llama-train bash
 
 # Manual step: After entering container, run
 # cd /llama-factory
