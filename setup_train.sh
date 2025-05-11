@@ -123,7 +123,7 @@ RUN pip install \
     scipy \
     tqdm \
     evaluate \
-    mflow
+    mlflow
 
 WORKDIR /llama-factory
 CMD ["bash"]
