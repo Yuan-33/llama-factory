@@ -172,7 +172,6 @@ om_cache/
 cache/
 config/
 saves/
-output/
 wandb/
 swanlog/
 generated_predictions.jsonl
