@@ -3,14 +3,14 @@ from vllm import LLM, SamplingParams
 llm = LLM(model="./merged_model")
 
 samples = [
-    {
-        "instruction": "What does the code get  ?",
-        "input": "def get_volume_type_qos_specs volume_type_id ctxt context get_admin_context res db volume_type_qos_specs_get ctxt volume_type_id return res"
-    },
-    {
-        "instruction": "How do a kext unload ?",
-        "input": "def UninstallDriver bundle_name km objc KextManager cf_bundle_name km PyStringToCFString bundle_name status km iokit KextManagerUnloadKextWithIdentifier cf_bundle_name km dll CFRelease cf_bundle_name return status"
-    }
+  {
+    "instruction": "Where did the buffer display ?",
+    "input": "@contextlib contextmanagerdef MockVimBuffers buffers current_buffer cursor_position 1 1 if current_buffer not in buffers raise RuntimeError u'Currentbuffermustbepartofthebufferslist ' with patch u'vim buffers' buffers with patch u'vim current buffer' current_buffer with patch u'vim current window cursor' cursor_position yield",
+  },
+  {
+    "instruction": "What does the code make ?",
+    "input": "def mountCgroups mounts quietRun 'cat/proc/mounts' cgdir '/sys/fs/cgroup'csdir cgdir + '/cpuset' if 'cgroup%s' % cgdir not in mounts and 'cgroups%s' % cgdir not in mounts raise Exception 'cgroupsnotmountedon' + cgdir if 'cpuset%s' % csdir not in mounts errRun 'mkdir-p' + csdir errRun 'mount-tcgroup-ocpusetcpuset' + csdir",
+  },
 ]
 
 def format_prompt(sample):

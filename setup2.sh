@@ -83,6 +83,13 @@ cd ~/llama-factory
 git pull origin main
 git lfs pull
 
+# Step 4.5: Ensure NVIDIA Container Toolkit is installed
+echo "[Step 4.5] Installing NVIDIA Container Toolkit if needed..."
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+
+
 # Step 5: Build the Docker image
 echo "[Step 5] Building the Docker image..."
 
@@ -109,6 +116,7 @@ chmod +x ~/llama-factory/fix_dependencies.sh
 docker rm -f llama-train || true
 
 docker run --gpus all -it --name llama-train \
+  -p 5000:5000 \
   -e WANDB_API_KEY=$WANDB_API_KEY \
   -v ~/llama-factory:/llama-factory \
   llama-env:py310 \
