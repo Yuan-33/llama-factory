@@ -2,8 +2,8 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Ensure W&B API key is provided
-: "${WANDB_API_KEY:?Error: Please set WANDB_API_KEY environment variable}"
-export WANDB_API_KEY
+# : "${WANDB_API_KEY:?Error: Please set WANDB_API_KEY environment variable}"
+# export WANDB_API_KEY
 
 
 # Step 0: Pre-clean broken NVIDIA repo
@@ -63,6 +63,7 @@ sudo systemctl restart docker
 # Step 3: Create Dockerfile with Python 3.10.12
 echo "[Step 3] Creating Dockerfile for Python 3.10.12..."
 
+
 mkdir -p ~/leximind
 cd ~/leximind
 
@@ -107,8 +108,6 @@ RUN pip install --upgrade pip
 
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# expose W&B token in container env
-ENV WANDB_API_KEY=${WANDB_API_KEY}
 
 RUN pip install \
     transformers \
@@ -123,7 +122,8 @@ RUN pip install \
     deepspeed \
     scipy \
     tqdm \
-    evaluate
+    evaluate \
+    mflow
 
 WORKDIR /llama-factory
 CMD ["bash"]
@@ -144,6 +144,13 @@ cd ~/llama-factory
 git pull origin main
 git lfs pull
 
+# Step 4.5: Ensure NVIDIA Container Toolkit is installed
+echo "[Step 4.5] Installing NVIDIA Container Toolkit if needed..."
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+
+
 # Step 5: Build the Docker image
 echo "[Step 5] Building the Docker image..."
 
@@ -154,23 +161,11 @@ docker build -t llama-env:py310 .
 echo "[Step 6] Starting the Docker container..."
 
 # Create a script inside llama-factory to auto-install correct pip packages
-cat << 'EOT' > ~/llama-factory/fix_dependencies.sh
-#!/bin/bash
-set -e
-echo "[Inside Container] Installing specific versions of required Python packages..."
-pip install datasets==3.5.0
-pip install peft==0.15.1
-pip install trl==0.9.6
-pip install matplotlib
-echo "[Done] All required packages are installed."
-EOT
-
-chmod +x ~/llama-factory/fix_dependencies.sh
 
 docker rm -f llama-train || true
 
 docker run --gpus all -it --name llama-train \
-  -e WANDB_API_KEY=$WANDB_API_KEY \
+  -p 5000:5000 \
   -v ~/llama-factory:/llama-factory \
   llama-env:py310 \
   bash
@@ -178,3 +173,4 @@ docker run --gpus all -it --name llama-train \
 # Manual step: After entering container, run
 #cd /llama-factory
 # bash train.sh
+

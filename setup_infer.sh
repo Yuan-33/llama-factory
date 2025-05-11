@@ -2,8 +2,15 @@
 set -e  # Exit immediately if a command exits with a non-zero status
 
 # Ensure W&B API key is provided
-: "${WANDB_API_KEY:?Error: Please set WANDB_API_KEY environment variable}"
-export WANDB_API_KEY
+# : "${WANDB_API_KEY:?Error: Please set WANDB_API_KEY environment variable}"
+# export WANDB_API_KEY
+
+
+# Step 0: Pre-clean broken NVIDIA repo
+if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
+    echo "[Step 0] Cleaning broken NVIDIA container toolkit source..."
+    sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
+fi
 
 # Step 1: Install Docker and NVIDIA container toolkit
 echo "[Step 1] Installing Docker and NVIDIA container toolkit..."
@@ -12,7 +19,9 @@ sudo groupadd -f docker
 sudo usermod -aG docker $USER
 
 # Reload group without reboot
-newgrp docker <<EONG
+# Just print a message for user
+echo "[Info] Docker installed. Please re-login or run 'newgrp docker' manually if needed."
+sleep 3
 
 # Check Docker version
 docker --version
@@ -26,23 +35,15 @@ if [ -f /etc/apt/sources.list.d/nvidia-container-toolkit.list ]; then
     sudo rm -f /etc/apt/sources.list.d/nvidia-container-toolkit.list
 fi
 
-# Force distribution to ubuntu22.04 (safe default)
-distribution=$(. /etc/os-release; echo ${ID}${VERSION_ID})
+distribution=$(. /etc/os-release; echo $ID$VERSION_ID)
 
-# 加上 x86_64
-distribution="${distribution}/x86_64"
-
-# Add NVIDIA repository correctly
-sudo mkdir -p /usr/share/keyrings
-curl -fsSL https://nvidia.github.io/libnvidia-container/gpgkey \
+curl -s -L https://nvidia.github.io/libnvidia-container/gpgkey \
     | sudo gpg --dearmor -o /usr/share/keyrings/nvidia-container-toolkit-keyring.gpg
 
-curl -s -L https://nvidia.github.io/libnvidia-container/stable/$distribution/nvidia-container-toolkit.list \
+curl -s -L https://nvidia.github.io/libnvidia-container/stable/deb/nvidia-container-toolkit.list \
     | sed 's#deb https://#deb [signed-by=/usr/share/keyrings/nvidia-container-toolkit-keyring.gpg] https://#g' \
-    | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list
+    | sudo tee /etc/apt/sources.list.d/nvidia-container-toolkit.list > /dev/null
 
-sudo apt-get update
-sudo apt-get install -y nvidia-container-toolkit
 
 # Fix Docker cgroup driver issue
 echo "[Step 2.5] Configuring Docker cgroup driver..."
@@ -61,6 +62,7 @@ sudo systemctl restart docker
 
 # Step 3: Create Dockerfile with Python 3.10.12
 echo "[Step 3] Creating Dockerfile for Python 3.10.12..."
+
 
 mkdir -p ~/leximind
 cd ~/leximind
@@ -106,23 +108,24 @@ RUN pip install --upgrade pip
 
 RUN pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
 
-# expose W&B token in container env
-ENV WANDB_API_KEY=${WANDB_API_KEY}
 
 RUN pip install \
     transformers \
-    datasets \
+    datasets==3.5.0 \
     accelerate \
     bitsandbytes \
-    peft \
+    peft==0.15.1 \
     scikit-learn \
     sentencepiece \
     wandb \
-    trl \
+    trl==0.9.6 \
     deepspeed \
     scipy \
     tqdm \
-    evaluate
+    evaluate \
+    matplotlib \
+    mlflow \
+    vllm
 
 WORKDIR /llama-factory
 CMD ["bash"]
@@ -143,9 +146,17 @@ cd ~/llama-factory
 git pull origin main
 git lfs pull
 
+# Step 4.5: Ensure NVIDIA Container Toolkit is installed
+echo "[Step 4.5] Installing NVIDIA Container Toolkit if needed..."
+sudo apt-get update
+sudo apt-get install -y nvidia-container-toolkit
+sudo systemctl restart docker
+
+
 # Step 5: Build the Docker image
 echo "[Step 5] Building the Docker image..."
 
+cd ~/leximind 
 docker build -t llama-env:py310 .
 
 # Step 6: Start the Docker container (bind mount llama-factory directory)
@@ -167,15 +178,19 @@ chmod +x ~/llama-factory/fix_dependencies.sh
 
 docker rm -f llama-train || true
 
-docker run --gpus all -d --name llama-train \
-    -e WANDB_API_KEY=$WANDB_API_KEY \
-    -v ~/llama-factory:/llama-factory \
-    llama-env:py310 \
-    bash
-
-# Step 7: 进容器
-docker exec -i llama-train bash
+docker run --gpus all -it --name llama-train \
+  -p 5000:5000 \
+  -v ~/llama-factory:/llama-factory \
+  llama-env:py310 \
+  bash
 
 # Manual step: After entering container, run
-# cd /llama-factory
+#cd /llama-factory
 # bash train.sh
+
+# pip install mlflow
+
+# pip install datasets==3.5.0
+# pip install peft==0.15.1
+# pip install trl==0.9.6
+# pip install matplotlib

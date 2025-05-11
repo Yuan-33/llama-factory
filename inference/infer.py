@@ -1,6 +1,10 @@
 from vllm import LLM, SamplingParams
 
-llm = LLM(model="./merged_model")
+# llm = LLM(model="./merged_model")
+
+# rtx6000 only supports float16 or half
+llm = LLM(model="./merged_model", dtype="float16")
+
 
 samples = [
   {
@@ -10,6 +14,14 @@ samples = [
   {
     "instruction": "What does the code make ?",
     "input": "def mountCgroups mounts quietRun 'cat/proc/mounts' cgdir '/sys/fs/cgroup'csdir cgdir + '/cpuset' if 'cgroup%s' % cgdir not in mounts and 'cgroups%s' % cgdir not in mounts raise Exception 'cgroupsnotmountedon' + cgdir if 'cpuset%s' % csdir not in mounts errRun 'mkdir-p' + csdir errRun 'mount-tcgroup-ocpusetcpuset' + csdir",
+  },
+   {
+    "instruction": "What does the new denying rule match  ?",
+    "input": "private boolean checkRuleMatch ( ACLRule newRule ) { List < Integer > allowRuleList = new ArrayList < > ( ) ; for ( ACLRule existingRule : getRules ( ) ) { if ( newRule . match ( existingRule ) ) { return _BOOL ; } if ( existingRule . getAction ( ) == Action . ALLOW && newRule . getAction ( ) == Action . DENY ) { if ( existingRule . match ( newRule ) ) { allowRuleList . add ( existingRule . getId ( ) ) ; } } } deny2Allow . put ( newRule . getId ( ) , allowRuleList ) ; return _BOOL ; }",
+  },
+   {
+    "instruction": "What list in an environment ?",
+    "input": "def list_states saltenv 'base' return __context__['fileclient'] list_states saltenv",
   },
 ]
 
